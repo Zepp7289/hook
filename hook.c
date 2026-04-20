@@ -374,6 +374,15 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
     //     __arch_copy_to_user_ptr((void *)((uint64_t)segment_addr + segment_length), patch_code, sizeof(patch_code));
     //     set_syscall_argn(args, 1, PAGE_ALIGN(segment_length));
     // }
+
+    // if (uid == target_uid && length == 0x5c515c8 && prot == 1) {
+    //     char buf[128];
+    //     static loff_t filp_pos = 0;
+    //     snprintf(buf, sizeof(buf), "/sdcard/Download/%px", addr);
+    //     struct file *filp = filp_open_ptr(buf, O_RDWR | O_CREAT | O_TRUNC, 0644);
+    //     vfs_write_ptr(filp, addr, length, &filp_pos);
+    //     filp_close_ptr(filp, NULL);
+    // }
 }
 
 static void before_kill(hook_fargs2_t *args, void *udata) {
