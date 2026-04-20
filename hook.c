@@ -345,7 +345,7 @@ static void before_munmap(hook_fargs2_t *args, void *udata) {
             pid, tgid, uid, addr, length);
     }
 
-    // if (uid == target_uid && addr == target_addr) {
+    // if (uid == target_uid && addr == segment_addr) {
     //     args->skip_origin = true;
     //     args->ret = 0;
     // }
@@ -365,22 +365,14 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
         pr_info("mprotect pid: %d addr: %px length: %zx prot: %d\n", pid, addr, length, prot);
     }
 
-    // if (uid == target_uid && addr == target_addr && prot == 5) {
+    // if (uid == target_uid && addr == segment_addr && prot == 5) {
     //     args->skip_origin = true;
     //     args->ret = 0;
-    // }
-
-    // if (uid == target_uid && addr == segment_addr && prot == 7) {
-    //     set_syscall_argn(args, 1, PAGE_ALIGN(segment_length));
     // }
 
     // if (uid == target_uid && addr == segment_addr && prot == 5) {
     //     __arch_copy_to_user_ptr((void *)((uint64_t)segment_addr + segment_length), patch_code, sizeof(patch_code));
     //     set_syscall_argn(args, 1, PAGE_ALIGN(segment_length));
-    // }
-
-    // if (uid == target_uid && addr == target_addr && prot == 5) {
-    //     __arch_copy_to_user_ptr((void *)((uint64_t)target_addr + target_addr_offet), patch_code, sizeof(patch_code));
     // }
 }
 
