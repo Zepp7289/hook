@@ -519,7 +519,7 @@ static long hook_init(const char *args, const char *event, void *__user reserved
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // memset(tmp_buf, 0, tmp_buf_size);
-    // tmp_filp = filp_open_ptr("/sdcard/Download/tmp.dll", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    // tmp_filp = filp_open_ptr("/sdcard/Download/tmp", O_RDWR | O_CREAT | O_TRUNC, 0644);
 
     return 0;
 }
