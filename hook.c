@@ -47,7 +47,7 @@ static bool is_delay = false;
 static int open_count = 0;
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
-static uint64_t segment_func_offet = 0x237143C;
+static uint64_t segment_func_offset = 0x237143C;
 static unsigned char patch_code[] = {
     0x03, 0xf0, 0x67, 0x1e,
 };
@@ -162,7 +162,7 @@ static void hbp_handler_next(struct perf_event *bp, struct perf_sample_data *dat
         // __arch_copy_from_user_ptr((void *)((uint64_t)tmp_buf + (uint64_t)tmp_filp_size), (void *)(regs->regs[28] + 0xc), tmp_cur_size);
         // tmp_filp_size += tmp_cur_size;
 
-        // regs->pc = (uint64_t)segment_addr + segment_func_offet + 0x4;
+        // regs->pc = (uint64_t)segment_addr + segment_func_offset + 0x4;
 
         // char buf[256];
         // pr_info("regs[19]: %px\n", regs->regs[19]);
@@ -316,8 +316,8 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && length == 0x4ba8000 && offset == 0x0 && !is_hook) {
-    //     init_attr(&attr, (void *)((uint64_t)segment_addr + segment_func_offet));
-    //     init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_func_offet + 0x4));
+    //     init_attr(&attr, (void *)((uint64_t)segment_addr + segment_func_offset));
+    //     init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_func_offset + 0x4));
     //     // init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_length + sizeof(patch_code)));
     //     selinux_state->enforcing = 0;
     //     hbp = register_wide_hw_breakpoint_ptr(&attr, hbp_handler, NULL);
