@@ -28,7 +28,13 @@ $(MODULE_NAME).kpm: ${objs}
 %.o: %.c
 	${CC} $(CFLAGS) $(INCLUDE_FLAGS) -c -O2 -o $@ $<
 
+ifeq ($(OS),Windows_NT)
+    RM = del /f /q
+else
+    RM = rm -f
+endif
+
 .PHONY: clean
 
 clean:
-	del /f /q *.o *.kpm
+	$(RM) *.o *.kpm
