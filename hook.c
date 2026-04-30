@@ -60,7 +60,7 @@ static struct perf_event_attr attr_next;
 static struct perf_event *hwbp_next = NULL;
 static void *tmp_buf = NULL;
 static size_t tmp_buf_size = 100 * 1024 * 1024;
-struct file *tmp_filp = NULL;
+static struct file *tmp_filp = NULL;
 static size_t tmp_filp_size = 0;
 static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
