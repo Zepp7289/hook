@@ -37,7 +37,7 @@ static unsigned long (*__arch_copy_from_user_ptr)(void *to, const void __user *f
 static void (*save_stack_trace_user_ptr)(struct stack_trace *trace) = NULL;
 static struct perf_event * __percpu *(*register_wide_hw_breakpoint_ptr)(struct perf_event_attr *attr, perf_overflow_handler_t triggered, void *context) = NULL;
 static void (*unregister_wide_hw_breakpoint_ptr)(struct perf_event * __percpu *cpu_events) = NULL;
-static struct selinux_state *selinux_state = NULL;
+static struct selinux_state *selinux_state_ptr = NULL;
 static void (*perf_event_disable_ptr)(struct perf_event *event) = NULL;
 static void (*perf_event_enable_ptr)(struct perf_event *event) = NULL;
 static void (*print_hex_dump_ptr)(const char *level, const char *prefix_str, int prefix_type, int rowsize, int groupsize, const void *buf, size_t len, bool ascii) = NULL;
@@ -319,10 +319,10 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     //     init_attr(&attr, (void *)((uint64_t)segment_addr + segment_func_offset));
     //     init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_func_offset + 0x4));
     //     // init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_length + sizeof(patch_code)));
-    //     selinux_state->enforcing = 0;
+    //     selinux_state_ptr->enforcing = 0;
     //     hbp = register_wide_hw_breakpoint_ptr(&attr, hbp_handler, NULL);
     //     hbp_next = register_wide_hw_breakpoint_ptr(&attr_next, hbp_handler_next, NULL);
-    //     selinux_state->enforcing = 1;
+    //     selinux_state_ptr->enforcing = 1;
     //     is_hook = true;
     // }
 
@@ -474,8 +474,8 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function register_wide_hw_breakpoint addr: %px\n", register_wide_hw_breakpoint_ptr);
     unregister_wide_hw_breakpoint_ptr = (void *)kallsyms_lookup_name("unregister_wide_hw_breakpoint");
     pr_info("kernel function unregister_wide_hw_breakpoint addr: %px\n", unregister_wide_hw_breakpoint_ptr);
-    selinux_state = (void *)kallsyms_lookup_name("selinux_state");
-    pr_info("kernel function selinux_state addr: %px\n", selinux_state);
+    selinux_state_ptr = (void *)kallsyms_lookup_name("selinux_state");
+    pr_info("kernel function selinux_state addr: %px\n", selinux_state_ptr);
     perf_event_disable_ptr = (void *)kallsyms_lookup_name("perf_event_disable");
     pr_info("kernel function perf_event_disable addr: %px\n", perf_event_disable_ptr);
     perf_event_enable_ptr = (void *)kallsyms_lookup_name("perf_event_enable");
