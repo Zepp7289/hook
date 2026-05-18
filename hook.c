@@ -532,6 +532,7 @@ static long hook_exit(void *__user reserved) {
     pr_info("hook exit ...\n");
 
     // kernel_write_ptr(tmp_filp, tmp_buf, tmp_filp_size, &tmp_filp_pos);
+    // filp_close_ptr(tmp_filp, NULL);
     // vfree_ptr(tmp_buf);
 
     inline_unhook_syscalln(__NR_openat, before_openat, after_openat);
