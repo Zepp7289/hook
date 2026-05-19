@@ -266,6 +266,36 @@ static void after_openat(hook_fargs4_t *args, void *udata) {
     }
 }
 
+static void before_unlinkat(hook_fargs3_t *args, void *udata) {
+    int dfd = (int)syscall_argn(args, 0);
+    const char __user *filename = (const char __user *)syscall_argn(args, 1);
+    int flags = (int)syscall_argn(args, 2);
+
+    struct task_struct *task = current;
+    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
+    uid_t uid = current_uid();
+    struct pt_regs *regs = _task_pt_reg(task);
+
+    if (uid == target_uid) {
+        char buf[256];
+        compat_strncpy_from_user(buf, filename, sizeof(buf));
+
+        pr_info("unlinkat pid: %d tgid: %d uid: %u filename: %s\n", 
+            pid, tgid, uid, buf);
+
+        // if (strstr(buf, "5d38d6cd.0")) {
+        //     args->skip_origin = true;
+        //     args->ret = 0;
+        // }
+
+        // if (strstr(buf, "global-metadata.dat")) {
+        //     unwind(regs);
+        // }
+    }
+}
+
+
 static void before_mmap(hook_fargs6_t *args, void *udata) {
     void *addr = (void *)syscall_argn(args, 0);
     size_t length = (size_t)syscall_argn(args, 1);
@@ -488,6 +518,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook openat error: %d\n", err);
     }
+    err = inline_hook_syscalln(__NR_unlinkat, 3, before_unlinkat, NULL, NULL);
+    if (err) {
+        pr_err("hook unlinkat error: %d\n", err);
+    }
     err = inline_hook_syscalln(__NR3264_mmap, 6, before_mmap, after_mmap, NULL);
     if (err) {
         pr_err("hook mmap error: %d\n", err);
@@ -536,6 +570,7 @@ static long hook_exit(void *__user reserved) {
     // vfree_ptr(tmp_buf);
 
     inline_unhook_syscalln(__NR_openat, before_openat, after_openat);
+    inline_unhook_syscalln(__NR_unlinkat, before_unlinkat, NULL);
     inline_unhook_syscalln(__NR3264_mmap, before_mmap, after_mmap);
     inline_unhook_syscalln(__NR_munmap, before_munmap, NULL);
     inline_unhook_syscalln(__NR_kill, before_kill, NULL);
