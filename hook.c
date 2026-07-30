@@ -118,9 +118,9 @@ static void hbp_handler(struct perf_event *bp, struct perf_sample_data *data, st
         // }
 
         // char buf[256];
-        // pr_info("regs[20]: %px\n", regs->regs[20]);
+        // pr_info("regs[0]: %px\n", regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[20]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // size_t dll_len = *(size_t *)&buf[0x18];
         // pr_info("dll_len: %zx\n", dll_len);
         // if (dll_len == 0x482400) {
@@ -159,7 +159,7 @@ static void hbp_handler_next(struct perf_event *bp, struct perf_sample_data *dat
         // pr_info("regs[14]: %px\n", regs->regs[14]);
         // pr_info("regs[15]: %px\n", regs->regs[15]);
 
-        // __arch_copy_from_user_ptr((void *)((uint64_t)tmp_buf + (uint64_t)tmp_filp_size), (void *)(regs->regs[28] + 0xc), tmp_cur_size);
+        // __arch_copy_from_user_ptr((void *)((char *)tmp_buf + tmp_filp_size), (void *)(regs->regs[28] + 0xc), tmp_cur_size);
         // tmp_filp_size += tmp_cur_size;
 
         // regs->pc = (uint64_t)segment_addr + segment_func_offset + 0x4;
