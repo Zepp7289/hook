@@ -346,9 +346,9 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && length == 0x4ba8000 && offset == 0x0 && !is_hook) {
-    //     init_attr(&attr, (void *)((uint64_t)segment_addr + segment_func_offset));
-    //     init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_func_offset + 0x4));
-    //     // init_attr(&attr_next, (void *)((uint64_t)segment_addr + segment_length + sizeof(patch_code)));
+    //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
+    //     init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset + 0x4));
+    //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_length + sizeof(patch_code)));
     //     selinux_state_ptr->enforcing = 0;
     //     hbp = register_wide_hw_breakpoint_ptr(&attr, hbp_handler, NULL);
     //     hbp_next = register_wide_hw_breakpoint_ptr(&attr_next, hbp_handler_next, NULL);
@@ -357,7 +357,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && length == 0x4711340 && offset == 0x2b9c000) {
-    //     __arch_copy_to_user_ptr((void *)((uint64_t)segment_addr + segment_length), patch_code, sizeof(patch_code));
+    //     __arch_copy_to_user_ptr((void *)((char *)segment_addr + segment_length), patch_code, sizeof(patch_code));
     // }
 
     // if (uid == target_uid && length == 0x5c515c8 && offset == 0x0) {
