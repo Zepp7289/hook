@@ -410,7 +410,7 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && addr == segment_addr && prot == 5) {
-    //     __arch_copy_to_user_ptr((void *)((uint64_t)segment_addr + segment_length), patch_code, sizeof(patch_code));
+    //     __arch_copy_to_user_ptr((void *)((char *)segment_addr + segment_length), patch_code, sizeof(patch_code));
     //     set_syscall_argn(args, 1, PAGE_ALIGN(segment_length));
     // }
 
