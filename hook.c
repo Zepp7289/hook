@@ -471,6 +471,19 @@ static void before_ptrace(hook_fargs4_t *args, void *udata) {
     // }
 }
 
+static void before_close(hook_fargs1_t *args, void *udata) {
+    int fd = (int)syscall_argn(args, 0);
+
+    struct task_struct *task = current;
+    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
+    uid_t uid = current_uid();
+
+    if (uid == target_uid) {
+        pr_info("close pid: %d tgid: %d uid: %u fd: %d\n", pid, tgid, uid, fd);
+    }
+}
+
 static long hook_init(const char *args, const char *event, void *__user reserved) {
     pr_info("hook init ..., args: %s\n", args);
 
@@ -552,6 +565,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook do_filp_open error: %d\n", err);
     }
+    err = inline_hook_syscalln(__NR_close, 1, before_close, NULL, NULL);
+    if (err) {
+        pr_err("hook close error: %d\n", err);
+    }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // memset(tmp_buf, 0, tmp_buf_size);
@@ -585,6 +602,7 @@ static long hook_exit(void *__user reserved) {
     inline_unhook_syscalln(__NR_exit, before_exit, NULL);
     inline_unhook_syscalln(__NR_ptrace, before_ptrace, NULL);
     inline_unhook_syscalln(__NR_mprotect, before_mprotect, NULL);
+    inline_unhook_syscalln(__NR_close, before_close, NULL);
     hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
     
     if (hbp) {
