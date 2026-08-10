@@ -401,7 +401,7 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
     uid_t uid = current_uid();
 
     if (uid == target_uid) {
-        pr_info("mprotect pid: %d addr: %px length: %zx prot: %d\n", pid, addr, length, prot);
+        pr_info("mprotect pid: %d tgid: %d uid: %u addr: %px length: %zx prot: %d\n", pid, tgid, uid, addr, length, prot);
     }
 
     // if (uid == target_uid && addr == segment_addr && prot == 5) {
@@ -425,13 +425,15 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
 }
 
 static void before_kill(hook_fargs2_t *args, void *udata) {
-    // pid_t pid = (pid_t)syscall_argn(args, 0);
     // int sig = (int)syscall_argn(args, 1);
 
+    // struct task_struct *task = current;
+    // pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    // pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
     // uid_t uid = current_uid();
 
     // if (uid == target_uid) {
-    //     pr_info("kill pid: %d, sig: %d\n", pid, sig);
+    //     pr_info("kill pid: %d tgid: %d uid: %u, sig: %d\n", pid, tgid, uid, sig);
     // }
 
     // if (uid == target_uid) {
@@ -449,7 +451,7 @@ static void before_exit(hook_fargs1_t *args, void *udata) {
     // uid_t uid = current_uid();
 
     // if (uid == target_uid) {
-    //     pr_info("exit pid: %d, status: %d\n", pid, status);
+    //     pr_info("exit pid: %d tgid: %d uid: %u, status: %d\n", pid, status);
     // }
 }
 
@@ -460,7 +462,7 @@ static void before_ptrace(hook_fargs4_t *args, void *udata) {
     // uid_t uid = current_uid();
 
     // if (uid == target_uid) {
-    //     pr_info("ptrace pid: %d\n", pid);
+    //     pr_info("ptrace pid: %d tgid: %d uid: %u\n", pid, tgid, uid);
     // }
 
     // if (uid == target_uid) {
