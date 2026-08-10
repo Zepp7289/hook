@@ -451,7 +451,7 @@ static void before_exit(hook_fargs1_t *args, void *udata) {
     // uid_t uid = current_uid();
 
     // if (uid == target_uid) {
-    //     pr_info("exit pid: %d tgid: %d uid: %u status: %d\n", pid, status);
+    //     pr_info("exit pid: %d tgid: %d uid: %u status: %d\n", pid, tgid, uid, status);
     // }
 }
 
