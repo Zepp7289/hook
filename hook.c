@@ -585,7 +585,7 @@ static long hook_exit(void *__user reserved) {
     inline_unhook_syscalln(__NR_exit, before_exit, NULL);
     inline_unhook_syscalln(__NR_ptrace, before_ptrace, NULL);
     inline_unhook_syscalln(__NR_mprotect, before_mprotect, NULL);
-    unhook(do_filp_open_ptr);
+    hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
     
     if (hbp) {
         unregister_wide_hw_breakpoint_ptr(hbp);
