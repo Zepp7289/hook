@@ -97,6 +97,7 @@ static void hbp_handler(struct perf_event *bp, struct perf_sample_data *data, st
         // regs->pc = (uint64_t)segment_addr + segment_length;
 
         // char buf[256];
+        // memset(buf, 0 ,sizeof(buf));
         // pr_info("regs[0]: %px\n", regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
         // print_hex_dump_ptr(KERN_INFO, "regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
