@@ -98,17 +98,17 @@ static void hbp_handler(struct perf_event *bp, struct perf_sample_data *data, st
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[0]: %px\n", regs->regs[0]);
+        // pr_info(">>>regs[0]: %px\n", regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, ">>>regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[1]: %px\n", regs->regs[1]);
+        // pr_info(">>>regs[1]: %px\n", regs->regs[1]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, ">>>regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[2]: %px\n", regs->regs[2]);
+        // pr_info(">>>regs[2]: %px\n", regs->regs[2]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, ">>>regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // pr_info("regs[3]: %px\n", regs->regs[3]);
 
         // char buf[256];
@@ -171,6 +171,19 @@ static void hbp_handler_next(struct perf_event *bp, struct perf_sample_data *dat
         // pr_info("regs[19]: %px\n", regs->regs[19]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[19]), sizeof(buf));
         // print_hex_dump_ptr(KERN_INFO, "regs[19]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // char buf[256];
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("<<<regs[0]: %px\n", regs->regs[0]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "<<<regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("<<<regs[1]: %px\n", regs->regs[1]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "<<<regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("<<<regs[2]: %px\n", regs->regs[2]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "<<<regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
     }
 
     perf_event_disable_ptr(hwbp_next);
