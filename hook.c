@@ -168,10 +168,6 @@ static void hbp_handler_next(struct perf_event *bp, struct perf_sample_data *dat
         // regs->pc = (uint64_t)segment_addr + segment_func_offset + 0x4;
 
         // char buf[256];
-        // pr_info("regs[19]: %px\n", regs->regs[19]);
-        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[19]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[19]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
-        // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
         // pr_info("<<<regs[0]: %px\n", regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
