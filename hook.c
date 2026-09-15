@@ -38,8 +38,6 @@ static void (*save_stack_trace_user_ptr)(struct stack_trace *trace) = NULL;
 static struct perf_event * __percpu *(*register_wide_hw_breakpoint_ptr)(struct perf_event_attr *attr, perf_overflow_handler_t triggered, void *context) = NULL;
 static void (*unregister_wide_hw_breakpoint_ptr)(struct perf_event * __percpu *cpu_events) = NULL;
 static struct selinux_state *selinux_state_ptr = NULL;
-static void (*perf_event_disable_ptr)(struct perf_event *event) = NULL;
-static void (*perf_event_enable_ptr)(struct perf_event *event) = NULL;
 static void (*print_hex_dump_ptr)(const char *level, const char *prefix_str, int prefix_type, int rowsize, int groupsize, const void *buf, size_t len, bool ascii) = NULL;
 static void (*perf_bp_event_ptr)(struct perf_event *bp, void *data) = NULL;
 
@@ -507,10 +505,6 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function unregister_wide_hw_breakpoint addr: %px\n", unregister_wide_hw_breakpoint_ptr);
     selinux_state_ptr = (void *)kallsyms_lookup_name("selinux_state");
     pr_info("kernel function selinux_state addr: %px\n", selinux_state_ptr);
-    perf_event_disable_ptr = (void *)kallsyms_lookup_name("perf_event_disable");
-    pr_info("kernel function perf_event_disable addr: %px\n", perf_event_disable_ptr);
-    perf_event_enable_ptr = (void *)kallsyms_lookup_name("perf_event_enable");
-    pr_info("kernel function perf_event_enable addr: %px\n", perf_event_enable_ptr);
     print_hex_dump_ptr = (void *)kallsyms_lookup_name("print_hex_dump");
     pr_info("kernel function print_hex_dump addr: %px\n", print_hex_dump_ptr);
     perf_bp_event_ptr = (void *)kallsyms_lookup_name("perf_bp_event");
