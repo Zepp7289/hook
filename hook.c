@@ -47,6 +47,7 @@ static int open_count = 0;
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
 static uint64_t segment_func_offset = 0x27EE2C0;
+static uint64_t segment_func_offset_next = 0x27EE2C4;
 static unsigned char patch_code[] = {
     0x03, 0xf0, 0x67, 0x1e,
 };
@@ -90,23 +91,23 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
     if (regs->pc == (uint64_t)segment_addr + segment_func_offset) {
         // unwind(regs);
 
-        // pr_info("regs[8]: %px\n", regs->regs[8]);
+        // pr_info("[0x%llx]regs[8]: %px\n", segment_func_offset, regs->regs[8]);
 
         // regs->regs[0] = 0x2;
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info(">>>regs[0]: %px\n", regs->regs[0]);
+        // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset, regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, ">>>regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info(">>>regs[1]: %px\n", regs->regs[1]);
+        // pr_info("[0x%llx]regs[1]: %px\n", segment_func_offset, regs->regs[1]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, ">>>regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info(">>>regs[2]: %px\n", regs->regs[2]);
+        // pr_info("[0x%llx]regs[2]: %px\n", segment_func_offset, regs->regs[2]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, ">>>regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
@@ -120,11 +121,11 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[0]: %px\n", regs->regs[0]);
+        // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset, regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // size_t dll_len = *(size_t *)&buf[0x18];
-        // pr_info("dll_len: %zx\n", dll_len);
+        // pr_info("[0x%llx]dll_len: %zx\n", segment_func_offset, dll_len);
         // if (dll_len == 0x482400) {
         //     tmp_filp_size = dll_len + 0x20;
         //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[0]), tmp_filp_size);
@@ -133,19 +134,20 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[1]: %px\n", regs->regs[1]);
+        // pr_info("[0x%llx]regs[1]: %px\n", segment_func_offset, regs->regs[1]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[2]: %px\n", regs->regs[2]);
+        // pr_info("[0x%llx]regs[2]: %px\n", segment_func_offset, regs->regs[2]);
         // compat_strncpy_from_user(buf, (void *)(regs->regs[4]), sizeof(buf));
-        // pr_info("regs[4]: %s\n", buf);
+        // pr_info("[0x%llx]regs[4]: %s\n", segment_func_offset, buf);
         // if (strstr(buf, "assets/main/index.js")) {
         //     tmp_filp_size = (size_t)regs->regs[2];
         //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[1]), tmp_filp_size);
         //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
         // }
-    } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset + 0x4) {
+
+    } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
 
     } else {
         return;
@@ -328,7 +330,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
 
     // if (uid == target_uid && length == 0x22a7eb4 && offset == 0x0 && !is_hook) {
     //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
-    //     init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset + 0x4));
+    //     init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_length + sizeof(patch_code)));
     //     selinux_state_ptr->enforcing = 0;
     //     hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
