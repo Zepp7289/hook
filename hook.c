@@ -164,11 +164,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
         // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
 
-    } else {
-        return;
     }
-
-    
 }
 
 static void init_attr(struct perf_event_attr *attr, void *addr) {
