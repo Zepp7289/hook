@@ -148,6 +148,8 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
         // }
 
     } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
+        // unwind(regs);
+
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
         // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset_next, regs->regs[0]);
