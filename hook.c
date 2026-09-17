@@ -111,9 +111,9 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
         // char buf[256];
         // memset(buf, 0 ,sizeof(buf));
-        // pr_info("regs[0]: %px\n", regs->regs[0]);
+        // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset, regs->regs[0]);
         // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-        // print_hex_dump_ptr(KERN_INFO, "regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         // if (*(uint32_t *)buf == 0xfab11baf) {
         //     tmp_filp_size = tmp_buf_size;
         //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[0]), tmp_filp_size);
