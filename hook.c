@@ -85,7 +85,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
     struct pt_regs *regs = (struct pt_regs *)args->arg1;
     
     if (!segment_addr) return;
-    if (regs->pc != (uint64_t)segment_addr + segment_func_offset && regs->pc != (uint64_t)segment_addr + segment_func_offset + 0x4) return;
+    if (regs->pc != (uint64_t)segment_addr + segment_func_offset && regs->pc != (uint64_t)segment_addr + segment_func_offset_next) return;
     if (current_uid() != target_uid) return;
 
     if (regs->pc == (uint64_t)segment_addr + segment_func_offset) {
