@@ -148,6 +148,19 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
         // }
 
     } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
+        // char buf[256];
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset_next, regs->regs[0]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("[0x%llx]regs[1]: %px\n", segment_func_offset_next, regs->regs[1]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
+        // memset(buf, 0 ,sizeof(buf));
+        // pr_info("[0x%llx]regs[2]: %px\n", segment_func_offset_next, regs->regs[2]);
+        // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
+        // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
 
     } else {
         return;
@@ -348,12 +361,8 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && length == 0x5c515c8 && offset == 0x0) {
-    //     char buf[128];
-    //     loff_t filp_pos = 0;
-    //     snprintf(buf, sizeof(buf), "/sdcard/Download/%px", addr);
-    //     struct file *filp = filp_open_ptr(buf, O_RDWR | O_CREAT | O_TRUNC, 0644);
-    //     vfs_write_ptr(filp, addr, length, &filp_pos);
-    //     filp_close_ptr(filp, NULL);
+    //     tmp_filp_size = length;
+    //     __arch_copy_from_user_ptr(tmp_buf, addr, tmp_filp_size);
     // }
 }
 
@@ -402,12 +411,8 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
     // }
 
     // if (uid == target_uid && length == 0x5c515c8 && prot == 1) {
-    //     char buf[128];
-    //     loff_t filp_pos = 0;
-    //     snprintf(buf, sizeof(buf), "/sdcard/Download/%px", addr);
-    //     struct file *filp = filp_open_ptr(buf, O_RDWR | O_CREAT | O_TRUNC, 0644);
-    //     vfs_write_ptr(filp, addr, length, &filp_pos);
-    //     filp_close_ptr(filp, NULL);
+    //     tmp_filp_size = length;
+    //     __arch_copy_from_user_ptr(tmp_buf, addr, tmp_filp_size);
     // }
 }
 
