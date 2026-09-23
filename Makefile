@@ -17,6 +17,7 @@ INCLUDE_DIRS := . include patch/include linux/include linux/arch/arm64/include l
 INCLUDE_FLAGS := $(foreach dir,$(INCLUDE_DIRS),-I$(KP_DIR)/kernel/$(dir))
 
 # CFLAGS := -Wall -Wextra -Wunused-macros -Wunused-parameter
+override CFLAGS += -mgeneral-regs-only -ffixed-x18
 
 objs := $(MODULE_NAME).o
 
