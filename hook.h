@@ -212,3 +212,5 @@ struct frame_record {
 #define PAGE_ALIGN(addr) ALIGN(addr, 4096)
 
 struct pt_regs *_task_pt_reg(struct task_struct *task);
+
+#define DBG_SPSR_SS		(1 << 21)

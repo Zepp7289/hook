@@ -40,6 +40,9 @@ static void (*unregister_wide_hw_breakpoint_ptr)(struct perf_event * __percpu *c
 static struct selinux_state *selinux_state_ptr = NULL;
 static void (*print_hex_dump_ptr)(const char *level, const char *prefix_str, int prefix_type, int rowsize, int groupsize, const void *buf, size_t len, bool ascii) = NULL;
 static void (*perf_bp_event_ptr)(struct perf_event *bp, void *data) = NULL;
+static int (*reinstall_suspended_bps_ptr)(struct pt_regs *regs) = NULL;
+static void (*user_enable_single_step_ptr)(struct task_struct *task) = NULL;
+static void (*user_disable_single_step_ptr)(struct task_struct *task) = NULL;
 
 static uid_t target_uid = 10303;
 static bool is_delay = false;
@@ -64,6 +67,7 @@ static struct file *tmp_filp = NULL;
 static size_t tmp_filp_size = 0;
 static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
+static struct task_struct *trace_task = NULL;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -143,6 +147,12 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[1]), tmp_filp_size);
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
             // }
+
+            // if (!trace_task) {
+            //     trace_task = current;
+            //     pr_info("trace start\n");
+            // }
+
         } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
             // unwind(regs);
 
@@ -160,6 +170,24 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
             // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         }
+    }
+}
+
+static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
+    struct pt_regs *regs = (struct pt_regs *)args->arg0;
+
+    if (current == trace_task) {
+        pr_info("trace pc: %px\n", regs->pc);
+        if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
+            user_disable_single_step_ptr(current);
+            regs->pstate &= ~DBG_SPSR_SS;
+            pr_info("trace stop\n");
+            trace_task = NULL;
+        } else {
+            user_enable_single_step_ptr(current);
+            regs->pstate |= DBG_SPSR_SS;
+        }
+        args->ret = 0;
     }
 }
 
@@ -511,6 +539,12 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function print_hex_dump addr: %px\n", print_hex_dump_ptr);
     perf_bp_event_ptr = (void *)kallsyms_lookup_name("perf_bp_event");
     pr_info("kernel function perf_bp_event addr: %px\n", perf_bp_event_ptr);
+    reinstall_suspended_bps_ptr = (void *)kallsyms_lookup_name("reinstall_suspended_bps");
+    pr_info("kernel function reinstall_suspended_bps addr: %px\n", reinstall_suspended_bps_ptr);
+    user_enable_single_step_ptr = (void *)kallsyms_lookup_name("user_enable_single_step");
+    pr_info("kernel function user_enable_single_step addr: %px\n", user_enable_single_step_ptr);
+    user_disable_single_step_ptr = (void *)kallsyms_lookup_name("user_disable_single_step");
+    pr_info("kernel function user_disable_single_step addr: %px\n", user_disable_single_step_ptr);
 
     hook_err_t err = HOOK_NO_ERR;
     err = inline_hook_syscalln(__NR_openat, 4, before_openat, after_openat, NULL);
@@ -557,6 +591,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook perf_bp_event error: %d\n", err);
     }
+    err = hook_wrap1(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps, NULL);
+    if (err) {
+        pr_err("hook reinstall_suspended_bps error: %d\n", err);
+    }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // memset(tmp_buf, 0, tmp_buf_size);
@@ -592,6 +630,7 @@ static long hook_exit(void *__user reserved) {
     inline_unhook_syscalln(__NR_mprotect, before_mprotect, NULL);
     inline_unhook_syscalln(__NR_close, before_close, NULL);
     hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
+    hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
