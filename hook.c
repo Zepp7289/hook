@@ -177,13 +177,15 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     struct pt_regs *regs = (struct pt_regs *)args->arg0;
 
     if (current == trace_task) {
-        pr_info("trace pc: %px\n", regs->pc);
         if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             pr_info("trace stop\n");
             trace_task = NULL;
         } else {
+            if (regs->pc >= (uint64_t)segment_addr + segment_func_offset_next && regs->pc <= (uint64_t)segment_addr + segment_func_offset_next) {
+                pr_info("trace pc: %px\n", regs->pc);
+            }
             user_enable_single_step_ptr(current);
             regs->pstate |= DBG_SPSR_SS;
         }
