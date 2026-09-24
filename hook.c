@@ -68,6 +68,8 @@ static size_t tmp_filp_size = 0;
 static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
 static struct task_struct *trace_task = NULL;
+static unsigned long trace_steps;
+static unsigned long max_steps = 1UL << 28;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -150,7 +152,8 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
             // if (!trace_task) {
             //     trace_task = current;
-            //     pr_info("trace start\n");
+            //     trace_steps = 0;
+            //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
             // }
 
         } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
@@ -177,14 +180,15 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     struct pt_regs *regs = (struct pt_regs *)args->arg0;
 
     if (current == trace_task) {
-        if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
+        trace_steps++;
+        if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next || trace_steps >= max_steps) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
-            pr_info("trace stop\n");
+            pr_info("trace stop pc: %px steps: %lu\n", regs->pc, trace_steps);
             trace_task = NULL;
         } else {
             if (regs->pc >= (uint64_t)segment_addr + segment_func_offset && regs->pc <= (uint64_t)segment_addr + segment_func_offset_next) {
-                pr_info("trace pc: %px\n", regs->pc);
+                pr_info("trace pc: %px steps: %lu\n", regs->pc, trace_steps);
             }
             user_enable_single_step_ptr(current);
             regs->pstate |= DBG_SPSR_SS;
