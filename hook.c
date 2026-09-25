@@ -43,6 +43,7 @@ static void (*perf_bp_event_ptr)(struct perf_event *bp, void *data) = NULL;
 static int (*reinstall_suspended_bps_ptr)(struct pt_regs *regs) = NULL;
 static void (*user_enable_single_step_ptr)(struct task_struct *task) = NULL;
 static void (*user_disable_single_step_ptr)(struct task_struct *task) = NULL;
+static int (*force_sig_info_ptr)(int sig, struct siginfo *info, struct task_struct *t) = NULL;
 
 static uid_t target_uid = 10303;
 static bool is_delay = false;
@@ -193,6 +194,17 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             user_enable_single_step_ptr(current);
             regs->pstate |= DBG_SPSR_SS;
         }
+        args->ret = 0;
+    }
+}
+
+static void before_force_sig_info(hook_fargs3_t *args, void *udata) {
+    int sig = (int)args->arg0;
+    struct siginfo *info = (struct siginfo *)args->arg1;
+    struct task_struct *task = (struct task_struct *)args->arg2;
+
+    if (task == trace_task && sig == 5 && info->si_code == 0) {
+        args->skip_origin = true;
         args->ret = 0;
     }
 }
@@ -551,6 +563,8 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function user_enable_single_step addr: %px\n", user_enable_single_step_ptr);
     user_disable_single_step_ptr = (void *)kallsyms_lookup_name("user_disable_single_step");
     pr_info("kernel function user_disable_single_step addr: %px\n", user_disable_single_step_ptr);
+    force_sig_info_ptr = (void *)kallsyms_lookup_name("force_sig_info");
+    pr_info("kernel function force_sig_info addr: %px\n", force_sig_info_ptr);
 
     hook_err_t err = HOOK_NO_ERR;
     err = inline_hook_syscalln(__NR_openat, 4, before_openat, after_openat, NULL);
@@ -601,6 +615,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook reinstall_suspended_bps error: %d\n", err);
     }
+    err = hook_wrap3(force_sig_info_ptr, before_force_sig_info, NULL, NULL);
+    if (err) {
+        pr_err("hook force_sig_info error: %d\n", err);
+    }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // memset(tmp_buf, 0, tmp_buf_size);
@@ -637,6 +655,7 @@ static long hook_exit(void *__user reserved) {
     inline_unhook_syscalln(__NR_close, before_close, NULL);
     hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
     hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
+    hook_unwrap(force_sig_info_ptr, before_force_sig_info, NULL);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);

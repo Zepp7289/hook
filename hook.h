@@ -214,3 +214,9 @@ struct frame_record {
 struct pt_regs *_task_pt_reg(struct task_struct *task);
 
 #define DBG_SPSR_SS		(1 << 21)
+
+struct siginfo {
+	int si_signo;
+	int si_errno;
+	int si_code;
+};
