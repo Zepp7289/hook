@@ -258,7 +258,6 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             pr_info("trace pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
         }
         if (watchdog_ev && __arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
-            pr_info("trace yield pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             task_work_add_ptr(current, &watchdog_enable_work, true);
