@@ -56,7 +56,7 @@ static int open_count = 0;
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
 static uint64_t segment_func_offset = 0x15B8ACC;
-static uint64_t segment_func_offset_next = 0x15B8BC0;
+static uint64_t segment_func_offset_next = 0x4097000;
 static unsigned char patch_code[] = {
     0x03, 0xf0, 0x67, 0x1e,
 };
@@ -81,6 +81,7 @@ static struct perf_event_attr watchdog_attr;
 static struct callback_head watchdog_create_work;
 static struct callback_head watchdog_enable_work;
 static struct callback_head watchdog_release_work;
+static struct callback_head trace_flush_work;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -99,6 +100,16 @@ static void unwind(struct pt_regs *regs) {
 
 static bool is_ldx_family(uint32_t insn) {
     return (insn & 0x3FDF0000) == 0x085F0000;
+}
+
+static void trace_flush_fn(struct callback_head *work) {
+    if (tmp_filp && tmp_cur_size) {
+        ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+        if (ret != (ssize_t)tmp_cur_size) {
+            pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
+        }
+        tmp_cur_size = 0;
+    }
 }
 
 static void init_watchdog_attr(struct perf_event_attr *attr) {
@@ -142,6 +153,10 @@ static void watchdog_enable_fn(struct callback_head *work) {
 }
 
 static void watchdog_release_fn(struct callback_head *work) {
+    if (tmp_filp && tmp_cur_size) {
+        kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+        tmp_cur_size = 0;
+    }
     if (watchdog_ev) {
         perf_event_release_kernel_ptr(watchdog_ev);
         watchdog_ev = NULL;
@@ -254,8 +269,12 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             args->ret = 0;
             return;
         }
-        if (regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
-            pr_info("trace pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
+        if (tmp_filp && regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
+            memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
+            tmp_cur_size += sizeof(regs->user_regs);
+            if (tmp_cur_size + sizeof(regs->user_regs) > tmp_buf_size) {
+                task_work_add_ptr(current, &trace_flush_work, true);
+            }
         }
         if (watchdog_ev && __arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
             user_disable_single_step_ptr(current);
@@ -651,6 +670,7 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     watchdog_create_work.func = watchdog_create_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
     watchdog_release_work.func = watchdog_release_fn;
+    trace_flush_work.func = trace_flush_fn;
 
     hook_err_t err = HOOK_NO_ERR;
     err = inline_hook_syscalln(__NR_openat, 4, before_openat, after_openat, NULL);
@@ -707,10 +727,12 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
-    // memset(tmp_buf, 0, tmp_buf_size);
-    // tmp_filp = filp_open_ptr("/sdcard/Download/tmp", O_RDWR | O_CREAT | O_TRUNC, 0644);
-    // if (IS_ERR(tmp_filp)) {
-    //     tmp_filp = NULL;
+    // if (tmp_buf) {
+    //     memset(tmp_buf, 0, tmp_buf_size);
+    //     tmp_filp = filp_open_ptr("/sdcard/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    //     if (IS_ERR(tmp_filp)) {
+    //         tmp_filp = NULL;
+    //     }
     // }
 
     return 0;
@@ -724,7 +746,10 @@ static long hook_exit(void *__user reserved) {
     pr_info("hook exit ...\n");
 
     // if (tmp_filp) {
-    //     kernel_write_ptr(tmp_filp, tmp_buf, tmp_filp_size, &tmp_filp_pos);
+    //     if (tmp_cur_size) {
+    //         kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+    //         tmp_cur_size = 0;
+    //     }
     //     filp_close_ptr(tmp_filp, NULL);
     // }
 
