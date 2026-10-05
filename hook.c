@@ -44,14 +44,19 @@ static int (*reinstall_suspended_bps_ptr)(struct pt_regs *regs) = NULL;
 static void (*user_enable_single_step_ptr)(struct task_struct *task) = NULL;
 static void (*user_disable_single_step_ptr)(struct task_struct *task) = NULL;
 static int (*force_sig_info_ptr)(int sig, struct siginfo *info, struct task_struct *t) = NULL;
+static struct perf_event *(*perf_event_create_kernel_counter_ptr)(struct perf_event_attr *attr, int cpu, struct task_struct *task, perf_overflow_handler_t overflow_handler, void *context) = NULL;
+static int (*perf_event_release_kernel_ptr)(struct perf_event *event) = NULL;
+static void (*perf_event_enable_ptr)(struct perf_event *event) = NULL;
+static void (*perf_event_disable_inatomic_ptr)(struct perf_event *event) = NULL;
+static int (*task_work_add_ptr)(struct task_struct *task, struct callback_head *twork, bool notify) = NULL;
 
-static uid_t target_uid = 10303;
+static uid_t target_uid = 10362;
 static bool is_delay = false;
 static int open_count = 0;
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
-static uint64_t segment_func_offset = 0x27EE2C0;
-static uint64_t segment_func_offset_next = 0x27EE2C4;
+static uint64_t segment_func_offset = 0x15B8ACC;
+static uint64_t segment_func_offset_next = 0x15B8BC0;
 static unsigned char patch_code[] = {
     0x03, 0xf0, 0x67, 0x1e,
 };
@@ -71,6 +76,11 @@ static loff_t tmp_filp_pos = 0;
 static struct task_struct *trace_task = NULL;
 static unsigned long trace_steps;
 static unsigned long max_steps = 1UL << 28;
+static struct perf_event *watchdog_ev = NULL;
+static struct perf_event_attr watchdog_attr;
+static struct callback_head watchdog_create_work;
+static struct callback_head watchdog_enable_work;
+static struct callback_head watchdog_release_work;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -84,6 +94,57 @@ static void unwind(struct pt_regs *regs) {
         pr_info("depth: %02d LR: %px\n", depth, frame_record.lr);
         cur = (struct frame_record *)frame_record.fp;
         depth++;
+    }
+}
+
+static bool is_ldx_family(uint32_t insn) {
+    return (insn & 0x3FDF0000) == 0x085F0000;
+}
+
+static void init_watchdog_attr(struct perf_event_attr *attr) {
+    memset(attr, 0, sizeof(*attr));
+    attr->type = PERF_TYPE_RAW;
+    attr->size = sizeof(*attr);
+    attr->config = 0x08;
+    attr->sample_period = 32;
+    attr->disabled = 1;
+    attr->exclude_hv = 1;
+    attr->exclude_kernel = 1;
+    attr->exclude_user = 0;
+    attr->inherit = 0;
+}
+
+static void watchdog_overflow(struct perf_event *event, struct perf_sample_data *data, struct pt_regs *regs) {
+    if (current == trace_task) {
+        user_enable_single_step_ptr(current);
+        _task_pt_reg(current)->pstate |= DBG_SPSR_SS;
+    }
+    perf_event_disable_inatomic_ptr(event);
+}
+
+static void watchdog_create_fn(struct callback_head *work) {
+    if (watchdog_ev) {
+        perf_event_release_kernel_ptr(watchdog_ev);
+        watchdog_ev = NULL;
+    }
+    init_watchdog_attr(&watchdog_attr);
+    watchdog_ev = perf_event_create_kernel_counter_ptr(&watchdog_attr, -1, current, watchdog_overflow, NULL);
+    if (IS_ERR(watchdog_ev)) {
+        pr_err("watchdog create failed: %ld\n", PTR_ERR(watchdog_ev));
+        watchdog_ev = NULL;
+    }
+}
+
+static void watchdog_enable_fn(struct callback_head *work) {
+    if (watchdog_ev) {
+        perf_event_enable_ptr(watchdog_ev);
+    }
+}
+
+static void watchdog_release_fn(struct callback_head *work) {
+    if (watchdog_ev) {
+        perf_event_release_kernel_ptr(watchdog_ev);
+        watchdog_ev = NULL;
     }
 }
 
@@ -154,6 +215,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // if (!trace_task) {
             //     trace_task = current;
             //     trace_steps = 0;
+            //     task_work_add_ptr(current, &watchdog_create_work, true);
             //     pr_info("trace start pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
             // }
 
@@ -179,6 +241,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
 static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     struct pt_regs *regs = (struct pt_regs *)args->arg0;
+    uint32_t insn = 0;
 
     if (current == trace_task) {
         trace_steps++;
@@ -187,13 +250,23 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             trace_task = NULL;
-        } else {
-            if (regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
-                pr_info("trace pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
-            }
-            user_enable_single_step_ptr(current);
-            regs->pstate |= DBG_SPSR_SS;
+            task_work_add_ptr(current, &watchdog_release_work, true);
+            args->ret = 0;
+            return;
         }
+        if (regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
+            pr_info("trace pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
+        }
+        if (watchdog_ev && __arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
+            pr_info("trace yield pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
+            user_disable_single_step_ptr(current);
+            regs->pstate &= ~DBG_SPSR_SS;
+            task_work_add_ptr(current, &watchdog_enable_work, true);
+            args->ret = 0;
+            return;
+        }
+        user_enable_single_step_ptr(current);
+        regs->pstate |= DBG_SPSR_SS;
         args->ret = 0;
     }
 }
@@ -376,12 +449,12 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             pid, tgid, uid, addr, length, prot, fd, offset, args->ret);
     }
 
-    // if (uid == target_uid && length == 0x22a7eb4 && offset == 0x0 && !is_hook) {
+    // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
     //     segment_addr = (void *)(args->ret);
     //     segment_length = length;
     // }
 
-    // if (uid == target_uid && length == 0x22a7eb4 && offset == 0x0 && !is_hook) {
+    // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
     //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_length + sizeof(patch_code)));
@@ -565,6 +638,20 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function user_disable_single_step addr: %px\n", user_disable_single_step_ptr);
     force_sig_info_ptr = (void *)kallsyms_lookup_name("force_sig_info");
     pr_info("kernel function force_sig_info addr: %px\n", force_sig_info_ptr);
+    perf_event_create_kernel_counter_ptr = (void *)kallsyms_lookup_name("perf_event_create_kernel_counter");
+    pr_info("kernel function perf_event_create_kernel_counter addr: %px\n", perf_event_create_kernel_counter_ptr);
+    perf_event_release_kernel_ptr = (void *)kallsyms_lookup_name("perf_event_release_kernel");
+    pr_info("kernel function perf_event_release_kernel addr: %px\n", perf_event_release_kernel_ptr);
+    perf_event_enable_ptr = (void *)kallsyms_lookup_name("perf_event_enable");
+    pr_info("kernel function perf_event_enable addr: %px\n", perf_event_enable_ptr);
+    perf_event_disable_inatomic_ptr = (void *)kallsyms_lookup_name("perf_event_disable_inatomic");
+    pr_info("kernel function perf_event_disable_inatomic addr: %px\n", perf_event_disable_inatomic_ptr);
+    task_work_add_ptr = (void *)kallsyms_lookup_name("task_work_add");
+    pr_info("kernel function task_work_add addr: %px\n", task_work_add_ptr);
+
+    watchdog_create_work.func = watchdog_create_fn;
+    watchdog_enable_work.func = watchdog_enable_fn;
+    watchdog_release_work.func = watchdog_release_fn;
 
     hook_err_t err = HOOK_NO_ERR;
     err = inline_hook_syscalln(__NR_openat, 4, before_openat, after_openat, NULL);
@@ -659,6 +746,10 @@ static long hook_exit(void *__user reserved) {
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
+    if (watchdog_ev) {
+        perf_event_release_kernel_ptr(watchdog_ev);
+        watchdog_ev = NULL;
+    }
 
     hook_unwrap(perf_bp_event_ptr, before_perf_bp_event, NULL);
 
