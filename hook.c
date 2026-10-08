@@ -231,7 +231,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     trace_task = current;
             //     trace_steps = 0;
             //     task_work_add_ptr(current, &watchdog_create_work, true);
-            //     pr_info("trace start pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
+            //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
             // }
 
         } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
@@ -261,7 +261,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     if (current == trace_task) {
         trace_steps++;
         if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next || trace_steps >= max_steps) {
-            pr_info("trace stop pc: %px steps: %lu offset: %tx\n", regs->pc, trace_steps, (void *)regs->pc - segment_addr);
+            pr_info("trace stop pc: %px steps: %lu\n", regs->pc, trace_steps);
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             trace_task = NULL;
